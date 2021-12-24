@@ -505,6 +505,10 @@ _pack_header = struct.Struct("<iiii").pack
 
 
 def __pack_message(operation, data):
+    print("=============== MESSAGE PACK BEGIN ============================")
+    print(operation)
+    print(data)
+    print("================== MESSAGE PACK END =======================")
     """Takes message data and adds a message header based on the operation.
 
     Returns the resultant message string.
