@@ -21,7 +21,7 @@ import struct
 import time
 
 
-from bson import _decode_all_selective
+from bson import _decode_all_selective, json_util
 
 from pymongo import helpers, message
 from pymongo.common import MAX_MESSAGE_SIZE
@@ -135,6 +135,7 @@ def command(sock_info, dbname, spec, is_mongos,
     try:
         print(msg)
         print(type(msg))
+        print(json_util.default(msg))
         sock_info.sock.sendall(msg)
         if use_op_msg and unacknowledged:
             # Unacknowledged, fake a successful command response.
