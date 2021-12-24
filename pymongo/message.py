@@ -527,6 +527,13 @@ def _op_msg_no_header(flags, command, identifier, docs, opts):
     only checked *after* generating the entire message.
     """
     # Encode the command document in payload 0 without checking keys.
+    print("================= OP MSG NO HEADER =======================")
+    print(flags)
+    print(command)
+    print(identifier)
+    print(docs)
+    print(opts)
+    print("================= END OP MSG NO HEADER =====================")
     encoded = _dict_to_bson(command, False, opts)
     flags_type = _pack_op_msg_flags_type(flags, 0)
     total_size = len(encoded)
