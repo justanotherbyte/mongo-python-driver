@@ -737,6 +737,9 @@ class SocketInfo(object):
                 (max_doc_size, self.max_bson_size))
 
         try:
+            print("=========== SOCK INFO SEND MESSAGE ==============")
+            print(message)
+            print("============ END SISM ========================")
             self.sock.sendall(message)
         except BaseException as error:
             self._raise_connection_failure(error)
