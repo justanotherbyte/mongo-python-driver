@@ -133,6 +133,8 @@ def command(sock_info, dbname, spec, is_mongos,
         start = datetime.datetime.now()
 
     try:
+        print(msg)
+        print(type(msg))
         sock_info.sock.sendall(msg)
         if use_op_msg and unacknowledged:
             # Unacknowledged, fake a successful command response.
