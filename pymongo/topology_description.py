@@ -145,8 +145,11 @@ class TopologyDescription(object):
             topology_type = self._topology_type
 
         # The default ServerDescription's type is Unknown.
-        sds = dict((address, ServerDescription(address))
-                   for address in self._server_descriptions)
+        sds = {
+            address: ServerDescription(address)
+            for address in self._server_descriptions
+        }
+
 
         return TopologyDescription(
             topology_type,
@@ -632,5 +635,4 @@ def _check_has_primary(sds):
     for s in sds.values():
         if s.server_type == SERVER_TYPE.RSPrimary:
             return TOPOLOGY_TYPE.ReplicaSetWithPrimary
-    else:
-        return TOPOLOGY_TYPE.ReplicaSetNoPrimary
+    return TOPOLOGY_TYPE.ReplicaSetNoPrimary

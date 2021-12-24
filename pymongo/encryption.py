@@ -84,10 +84,7 @@ class _EncryptionIO(MongoCryptCallback):
     def __init__(self, client, key_vault_coll, mongocryptd_client, opts):
         """Internal class to perform I/O on behalf of pymongocrypt."""
         # Use a weak ref to break reference cycle.
-        if client is not None:
-            self.client_ref = weakref.ref(client)
-        else:
-            self.client_ref = None
+        self.client_ref = weakref.ref(client) if client is not None else None
         self.key_vault_coll = key_vault_coll.with_options(
             codec_options=_KEY_VAULT_OPTS,
             read_concern=ReadConcern(level='majority'),
@@ -316,10 +313,8 @@ class _Encrypter(object):
         encoded_cmd = _dict_to_bson(cmd, False, codec_options)
         with _wrap_encryption_errors():
             encrypted_cmd = self._auto_encrypter.encrypt(database, encoded_cmd)
-            # TODO: PYTHON-1922 avoid decoding the encrypted_cmd.
-            encrypt_cmd = _inflate_bson(
+            return _inflate_bson(
                 encrypted_cmd, DEFAULT_RAW_BSON_OPTIONS)
-            return encrypt_cmd
 
     def decrypt(self, response):
         """Decrypt a MongoDB command response.

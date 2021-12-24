@@ -78,10 +78,7 @@ class TestChangeStreamBase(IntegrationTest):
 
     def generate_unique_collnames(self, numcolls):
         """Generate numcolls collection names unique to a test."""
-        collnames = []
-        for idx in range(1, numcolls + 1):
-            collnames.append(self.id() + '_' + str(idx))
-        return collnames
+        return [self.id() + '_' + str(idx) for idx in range(1, numcolls + 1)]
 
     def get_resume_token(self, invalidate=False):
         """Get a resume token to use for starting a change stream."""
@@ -255,7 +252,7 @@ class APITestsMixin(object):
         coll.insert_many([{"data": i} for i in range(ndocs)])
 
         with self.change_stream(start_at_operation_time=optime) as cs:
-            for i in range(ndocs):
+            for _ in range(ndocs):
                 cs.next()
 
     def _test_full_pipeline(self, expected_cs_stage):
@@ -1155,10 +1152,7 @@ def get_change_stream(client, scenario_def, test):
     # Construct change stream kwargs dict
     cs_pipeline = test["changeStreamPipeline"]
     options = test["changeStreamOptions"]
-    cs_options = {}
-    for key, value in options.items():
-        cs_options[camel_to_snake(key)] = value
-
+    cs_options = {camel_to_snake(key): value for key, value in options.items()}
     # Create and return change stream
     return cs_target.watch(pipeline=cs_pipeline, **cs_options)
 

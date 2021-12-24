@@ -181,18 +181,14 @@ _UNPACK_COMPRESSION_HEADER = struct.Struct("<iiB").unpack
 def receive_message(sock_info, request_id, max_message_size=MAX_MESSAGE_SIZE):
     """Receive a raw BSON message or raise socket.error."""
     timeout = sock_info.sock.gettimeout()
-    if timeout:
-        deadline = time.monotonic() + timeout
-    else:
-        deadline = None
+    deadline = time.monotonic() + timeout if timeout else None
     # Ignore the response's request id.
     length, _, response_to, op_code = _UNPACK_HEADER(
         _receive_data_on_socket(sock_info, 16, deadline))
     # No request_id for exhaust cursor "getMore".
-    if request_id is not None:
-        if request_id != response_to:
-            raise ProtocolError("Got response id %r but expected "
-                                "%r" % (response_to, request_id))
+    if request_id is not None and request_id != response_to:
+        raise ProtocolError("Got response id %r but expected "
+                            "%r" % (response_to, request_id))
     if length <= 16:
         raise ProtocolError("Message length (%r) not longer than standard "
                             "message header size (16)" % (length,))

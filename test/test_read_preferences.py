@@ -340,10 +340,7 @@ class TestCommandAndReadPreference(IntegrationTest):
     @client_context.require_secondaries_count(1)
     def setUpClass(cls):
         super(TestCommandAndReadPreference, cls).setUpClass()
-        cls.c = ReadPrefTester(
-            client_context.pair,
-            # Ignore round trip times, to test ReadPreference modes only.
-            localThresholdMS=1000*1000)
+        cls.c = ReadPrefTester(client_context.pair, localThresholdMS=1000**2)
         cls.client_version = Version.from_client(cls.c)
         # mapReduce fails if the collection does not exist.
         coll = cls.c.pymongo_test.get_collection(

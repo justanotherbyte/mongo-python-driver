@@ -211,10 +211,11 @@ def create_test(scenario_def):
             server_description = make_server_description(server, hosts)
             expected_suitable_servers[server['address']] = server_description
 
-        actual_suitable_servers = {}
-        for s in actual_suitable_s:
-            actual_suitable_servers["%s:%d" % (s.description.address[0],
-                                    s.description.address[1])] = s.description
+        actual_suitable_servers = {
+            "%s:%d"
+            % (s.description.address[0], s.description.address[1]): s.description
+            for s in actual_suitable_s
+        }
 
         self.assertEqual(len(actual_suitable_servers),
                          len(expected_suitable_servers))
@@ -231,11 +232,11 @@ def create_test(scenario_def):
             server_description = make_server_description(server, hosts)
             expected_latency_servers[server['address']] = server_description
 
-        actual_latency_servers = {}
-        for s in actual_latency_s:
-            actual_latency_servers["%s:%d" %
-                                   (s.description.address[0],
-                                    s.description.address[1])] = s.description
+        actual_latency_servers = {
+            "%s:%d"
+            % (s.description.address[0], s.description.address[1]): s.description
+            for s in actual_latency_s
+        }
 
         self.assertEqual(len(actual_latency_servers),
                          len(expected_latency_servers))

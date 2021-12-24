@@ -44,18 +44,21 @@ _TEST_PATH = os.path.join(
 
 
 def compare_server_descriptions(expected, actual):
-    if ((not expected['address'] == "%s:%s" % actual.address) or
-            (not server_name_to_type(expected['type']) ==
-                actual.server_type)):
+    if (
+        expected['address'] != "%s:%s" % actual.address
+        or server_name_to_type(expected['type']) != actual.server_type
+    ):
         return False
     expected_hosts = set(
         expected['arbiters'] + expected['passives'] + expected['hosts'])
-    return expected_hosts == set("%s:%s" % s for s in actual.all_hosts)
+    return expected_hosts == {"%s:%s" % s for s in actual.all_hosts}
 
 
 def compare_topology_descriptions(expected, actual):
-    if not (TOPOLOGY_TYPE.__getattribute__(
-            expected['topologyType']) == actual.topology_type):
+    if (
+        TOPOLOGY_TYPE.__getattribute__(expected['topologyType'])
+        != actual.topology_type
+    ):
         return False
     expected = expected['servers']
     actual = actual.server_descriptions()
@@ -82,7 +85,7 @@ def compare_events(expected_dict, actual):
         if not isinstance(actual, monitoring.ServerOpeningEvent):
             return False, "Expected ServerOpeningEvent, got %s" % (
                 actual.__class__)
-        if not expected['address'] == "%s:%s" % actual.server_address:
+        if expected['address'] != "%s:%s" % actual.server_address:
             return (False,
                     "ServerOpeningEvent published with wrong address (expected"
                     " %s, got %s" % (expected['address'],
@@ -94,7 +97,7 @@ def compare_events(expected_dict, actual):
             return (False,
                     "Expected ServerDescriptionChangedEvent, got %s" % (
                         actual.__class__))
-        if not expected['address'] == "%s:%s" % actual.server_address:
+        if expected['address'] != "%s:%s" % actual.server_address:
             return (False, "ServerDescriptionChangedEvent has wrong address"
                            " (expected %s, got %s" % (expected['address'],
                                                       actual.server_address))
@@ -112,7 +115,7 @@ def compare_events(expected_dict, actual):
         if not isinstance(actual, monitoring.ServerClosedEvent):
             return False, "Expected ServerClosedEvent, got %s" % (
                 actual.__class__)
-        if not expected['address'] == "%s:%s" % actual.server_address:
+        if expected['address'] != "%s:%s" % actual.server_address:
             return (False, "ServerClosedEvent published with wrong address"
                            " (expected %s, got %s" % (expected['address'],
                                                       actual.server_address))

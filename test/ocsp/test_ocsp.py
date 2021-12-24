@@ -14,6 +14,7 @@
 
 """Test OCSP."""
 
+
 import logging
 import os
 import sys
@@ -34,11 +35,7 @@ OCSP_TLS_SHOULD_SUCCEED = (os.environ.get('OCSP_TLS_SHOULD_SUCCEED') == 'true')
 FORMAT = '%(asctime)s %(levelname)s %(module)s %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
 
-if sys.platform == 'win32':
-    # The non-stapled OCSP endpoint check is slow on Windows.
-    TIMEOUT_MS = 5000
-else:
-    TIMEOUT_MS = 500
+TIMEOUT_MS = 5000 if sys.platform == 'win32' else 500
 
 
 def _connect(options):

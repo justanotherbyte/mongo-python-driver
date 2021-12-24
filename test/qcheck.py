@@ -105,10 +105,7 @@ def gen_datetime():
 def gen_dict(gen_key, gen_value, gen_length):
 
     def a_dict(gen_key, gen_value, length):
-        result = {}
-        for _ in range(length):
-            result[gen_key()] = gen_value()
-        return result
+        return {gen_key(): gen_value() for _ in range(length)}
     return lambda: a_dict(gen_key, gen_value, gen_length())
 
 
@@ -121,11 +118,11 @@ def gen_regexp(gen_length):
     def gen_flags():
         flags = 0
         if random.random() > 0.5:
-            flags = flags | re.IGNORECASE
+            flags |= re.IGNORECASE
         if random.random() > 0.5:
-            flags = flags | re.MULTILINE
+            flags |= re.MULTILINE
         if random.random() > 0.5:
-            flags = flags | re.VERBOSE
+            flags |= re.VERBOSE
 
         return flags
     return lambda: re.compile(pattern(), gen_flags())

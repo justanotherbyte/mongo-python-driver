@@ -435,14 +435,9 @@ class _Bulk(object):
         write_concern = write_concern or self.collection.write_concern
         session = _validate_session_write_concern(session, write_concern)
 
-        if self.ordered:
-            generator = self.gen_ordered()
-        else:
-            generator = self.gen_unordered()
-
+        generator = self.gen_ordered() if self.ordered else self.gen_unordered()
         client = self.collection.database.client
-        if not write_concern.acknowledged:
-            with client._socket_for_writes(session) as sock_info:
-                self.execute_no_results(sock_info, generator)
-        else:
+        if write_concern.acknowledged:
             return self.execute_command(generator, write_concern, session)
+        with client._socket_for_writes(session) as sock_info:
+            self.execute_no_results(sock_info, generator)

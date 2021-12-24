@@ -200,9 +200,10 @@ class TestGridfs(IntegrationTest):
         self.alt.upload_from_stream("test", b"foo")
         self.alt.upload_from_stream("hello world", b"")
 
-        self.assertEqual(set(["mike", "test", "hello world", "foo"]),
-                         set(k["filename"] for k in list(
-                             self.db.alt.files.find())))
+        self.assertEqual(
+            set(["mike", "test", "hello world", "foo"]),
+            {k["filename"] for k in list(self.db.alt.files.find())},
+        )
 
     def test_threaded_reads(self):
         self.fs.upload_from_stream("test", b"hello")
@@ -327,8 +328,6 @@ class TestGridfs(IntegrationTest):
         fstr = self.fs.open_download_stream_by_name("empty")
 
         def iterate_file(grid_file):
-            for _ in grid_file:
-                pass
             return True
 
         self.assertTrue(iterate_file(fstr))

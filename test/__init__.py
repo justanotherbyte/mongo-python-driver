@@ -122,11 +122,10 @@ def is_server_resolvable():
     socket_timeout = socket.getdefaulttimeout()
     socket.setdefaulttimeout(1)
     try:
-        try:
-            socket.gethostbyname('server')
-            return True
-        except socket.error:
-            return False
+        socket.gethostbyname('server')
+        return True
+    except socket.error:
+        return False
     finally:
         socket.setdefaulttimeout(socket_timeout)
 
@@ -220,7 +219,7 @@ class client_knobs(object):
 
 
 def _all_users(db):
-    return set(u['user'] for u in db.command('usersInfo').get('users', []))
+    return {u['user'] for u in db.command('usersInfo').get('users', [])}
 
 
 class ClientContext(object):
@@ -281,10 +280,7 @@ class ClientContext(object):
 
     def _connect(self, host, port, **kwargs):
         # Jython takes a long time to connect.
-        if sys.platform.startswith('java'):
-            timeout_ms = 10000
-        else:
-            timeout_ms = 5000
+        timeout_ms = 10000 if sys.platform.startswith('java') else 5000
         kwargs.update(self.default_client_options)
         client = pymongo.MongoClient(
             host, port, serverSelectionTimeoutMS=timeout_ms, **kwargs)
@@ -350,10 +346,8 @@ class ClientContext(object):
                     self.auth_enabled = self._server_started_with_auth()
 
             if self.auth_enabled:
-                if not self.serverless:
-                    # See if db_user already exists.
-                    if not self._check_user_provided():
-                        _create_user(self.client.admin, db_user, db_pwd)
+                if not self.serverless and not self._check_user_provided():
+                    _create_user(self.client.admin, db_user, db_pwd)
 
                 self.client = self._connect(
                     host, port, username=db_user, password=db_pwd,
@@ -528,9 +522,8 @@ class ClientContext(object):
         if 'parsed' in self.cmd_line:
             if not self.cmd_line['parsed'].get('net', {}).get('ipv6'):
                 return False
-        else:
-            if '--ipv6' not in self.cmd_line['argv']:
-                return False
+        elif '--ipv6' not in self.cmd_line['argv']:
+            return False
 
         # The server was started with --ipv6. Is there an IPv6 route to it?
         try:
@@ -718,10 +711,8 @@ class ClientContext(object):
         if unknown:
             raise AssertionError('Unknown topologies: %r' % (unknown,))
         if self.load_balancer:
-            if 'load-balanced' in topologies:
-                return True
-            return False
-        if 'single' in topologies and not (self.is_mongos or self.is_rs):
+            return 'load-balanced' in topologies
+        if 'single' in topologies and not self.is_mongos and not self.is_rs:
             return True
         if 'replicaset' in topologies and self.is_rs:
             return True
@@ -734,7 +725,7 @@ class ClientContext(object):
                 # will be 'replicaName/ip1:port1,ip2:port2,ip3:port3'
                 # Otherwise it will be 'ip1:port1'
                 host_spec = shard['host']
-                if not len(host_spec.split('/')) > 1:
+                if len(host_spec.split('/')) <= 1:
                     return False
             return True
         return False
@@ -1089,8 +1080,8 @@ def test_cases(suite):
             yield suite_or_case
         else:
             # unittest.TestSuite
-            for case in test_cases(suite_or_case):
-                yield case
+            # unittest.TestSuite
+            yield from test_cases(suite_or_case)
 
 
 # Helper method to workaround https://bugs.python.org/issue21724

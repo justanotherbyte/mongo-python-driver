@@ -551,7 +551,7 @@ def parse_uri(uri, default_port=DEFAULT_PORT, validate=True, warn=False,
     elif not is_srv and options.get("srvServiceName") is not None:
         raise ConfigurationError("The srvServiceName option is only allowed "
                                  "with 'mongodb+srv://' URIs")
-    elif not is_srv and srv_max_hosts:
+    elif srv_max_hosts:
         raise ConfigurationError("The srvMaxHosts option is only allowed "
                                  "with 'mongodb+srv://' URIs")
     else:

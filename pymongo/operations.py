@@ -80,9 +80,8 @@ class DeleteOne(object):
         """
         if filter is not None:
             validate_is_mapping("filter", filter)
-        if hint is not None:
-            if not isinstance(hint, str):
-                hint = helpers._index_document(hint)
+        if hint is not None and not isinstance(hint, str):
+            hint = helpers._index_document(hint)
         self._filter = filter
         self._collation = collation
         self._hint = hint
@@ -133,9 +132,8 @@ class DeleteMany(object):
         """
         if filter is not None:
             validate_is_mapping("filter", filter)
-        if hint is not None:
-            if not isinstance(hint, str):
-                hint = helpers._index_document(hint)
+        if hint is not None and not isinstance(hint, str):
+            hint = helpers._index_document(hint)
         self._filter = filter
         self._collation = collation
         self._hint = hint
@@ -192,9 +190,8 @@ class ReplaceOne(object):
             validate_is_mapping("filter", filter)
         if upsert is not None:
             validate_boolean("upsert", upsert)
-        if hint is not None:
-            if not isinstance(hint, str):
-                hint = helpers._index_document(hint)
+        if hint is not None and not isinstance(hint, str):
+            hint = helpers._index_document(hint)
 
         self._filter = filter
         self._doc = replacement
@@ -237,9 +234,8 @@ class _UpdateOp(object):
             validate_boolean("upsert", upsert)
         if array_filters is not None:
             validate_list("array_filters", array_filters)
-        if hint is not None:
-            if not isinstance(hint, str):
-                hint = helpers._index_document(hint)
+        if hint is not None and not isinstance(hint, str):
+            hint = helpers._index_document(hint)
 
 
         self._filter = filter

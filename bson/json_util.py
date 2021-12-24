@@ -448,7 +448,7 @@ def _json_convert(obj, json_options=DEFAULT_JSON_OPTIONS):
         return SON(((k, _json_convert(v, json_options))
                     for k, v in obj.items()))
     elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes)):
-        return list((_json_convert(v, json_options) for v in obj))
+        return [_json_convert(v, json_options) for v in obj]
     try:
         return default(obj, json_options)
     except TypeError:
@@ -627,12 +627,11 @@ def _parse_canonical_datetime(doc, json_options):
                 secs *= -1
             aware = aware - datetime.timedelta(seconds=secs)
 
-        if json_options.tz_aware:
-            if json_options.tzinfo:
-                aware = aware.astimezone(json_options.tzinfo)
-            return aware
-        else:
+        if not json_options.tz_aware:
             return aware.replace(tzinfo=None)
+        if json_options.tzinfo:
+            aware = aware.astimezone(json_options.tzinfo)
+        return aware
     return bson._millis_to_datetime(int(dtm), json_options)
 
 
@@ -685,21 +684,20 @@ def _parse_canonical_dbpointer(doc):
     dbref = doc['$dbPointer']
     if len(doc) != 1:
         raise TypeError('Bad $dbPointer, extra field(s): %s' % (doc,))
-    if isinstance(dbref, DBRef):
-        dbref_doc = dbref.as_doc()
-        # DBPointer must not contain $db in its value.
-        if dbref.database is not None:
-            raise TypeError(
-                'Bad $dbPointer, extra field $db: %s' % (dbref_doc,))
-        if not isinstance(dbref.id, ObjectId):
-            raise TypeError(
-                'Bad $dbPointer, $id must be an ObjectId: %s' % (dbref_doc,))
-        if len(dbref_doc) != 2:
-            raise TypeError(
-                'Bad $dbPointer, extra field(s) in DBRef: %s' % (dbref_doc,))
-        return dbref
-    else:
+    if not isinstance(dbref, DBRef):
         raise TypeError('Bad $dbPointer, expected a DBRef: %s' % (doc,))
+    dbref_doc = dbref.as_doc()
+    # DBPointer must not contain $db in its value.
+    if dbref.database is not None:
+        raise TypeError(
+            'Bad $dbPointer, extra field $db: %s' % (dbref_doc,))
+    if not isinstance(dbref.id, ObjectId):
+        raise TypeError(
+            'Bad $dbPointer, $id must be an ObjectId: %s' % (dbref_doc,))
+    if len(dbref_doc) != 2:
+        raise TypeError(
+            'Bad $dbPointer, extra field(s) in DBRef: %s' % (dbref_doc,))
+    return dbref
 
 
 def _parse_canonical_int32(doc):
@@ -837,12 +835,11 @@ def default(obj, json_options=DEFAULT_JSON_OPTIONS):
     if isinstance(obj, bytes):
         return _encode_binary(obj, 0, json_options)
     if isinstance(obj, uuid.UUID):
-        if json_options.strict_uuid:
-            binval = Binary.from_uuid(
-                obj, uuid_representation=json_options.uuid_representation)
-            return _encode_binary(binval, binval.subtype, json_options)
-        else:
+        if not json_options.strict_uuid:
             return {"$uuid": obj.hex}
+        binval = Binary.from_uuid(
+            obj, uuid_representation=json_options.uuid_representation)
+        return _encode_binary(binval, binval.subtype, json_options)
     if isinstance(obj, Decimal128):
         return {"$numberDecimal": str(obj)}
     if isinstance(obj, bool):

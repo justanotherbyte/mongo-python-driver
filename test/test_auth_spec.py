@@ -78,12 +78,11 @@ def create_test(test_case):
                                 expected['AWS_SESSION_TOKEN'])
                         else:
                             self.fail('Unhandled property: %s' % (key,))
+                elif credential['mechanism'] == 'MONGODB-AWS':
+                    self.assertIsNone(
+                        credentials.mechanism_properties.aws_session_token)
                 else:
-                    if credential['mechanism'] == 'MONGODB-AWS':
-                        self.assertIsNone(
-                            credentials.mechanism_properties.aws_session_token)
-                    else:
-                        self.assertIsNone(credentials.mechanism_properties)
+                    self.assertIsNone(credentials.mechanism_properties)
 
     return run_test
 

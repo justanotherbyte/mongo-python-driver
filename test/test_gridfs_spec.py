@@ -140,8 +140,7 @@ def create_test(scenario_def):
 
             args.update(extra_opts)
 
-            converted_args = dict((camel_to_snake(c), v)
-                                  for c, v in args.items())
+            converted_args = {camel_to_snake(c): v for c, v in args.items()}
 
             expect_error = test['assert'].get("error", False)
             result = None
@@ -205,9 +204,8 @@ def create_tests():
             # and everything is named 'data'
             def str2hex(jsn):
                 for key, val in jsn.items():
-                    if key in ("data", "source", "result"):
-                        if "$hex" in val:
-                            jsn[key] = Binary(bytes.fromhex(val['$hex']))
+                    if key in ("data", "source", "result") and "$hex" in val:
+                        jsn[key] = Binary(bytes.fromhex(val['$hex']))
                     if isinstance(jsn[key], dict):
                         str2hex(jsn[key])
                     if isinstance(jsn[key], list):

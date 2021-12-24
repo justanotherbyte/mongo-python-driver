@@ -69,15 +69,14 @@ def _index_list(key_or_list, direction=None):
     """
     if direction is not None:
         return [(key_or_list, direction)]
-    else:
-        if isinstance(key_or_list, str):
-            return [(key_or_list, ASCENDING)]
-        if isinstance(key_or_list, abc.ItemsView):
-            return list(key_or_list)
-        elif not isinstance(key_or_list, (list, tuple)):
-            raise TypeError("if no direction is specified, "
-                            "key_or_list must be an instance of list")
-        return key_or_list
+    if isinstance(key_or_list, str):
+        return [(key_or_list, ASCENDING)]
+    if isinstance(key_or_list, abc.ItemsView):
+        return list(key_or_list)
+    elif not isinstance(key_or_list, (list, tuple)):
+        raise TypeError("if no direction is specified, "
+                        "key_or_list must be an instance of list")
+    return key_or_list
 
 
 def _index_document(index_list):
@@ -144,13 +143,13 @@ def _check_command_response(response, max_wire_version,
 
     # For allowable errors, only check for error messages when the code is not
     # included.
-    if allowable_errors:
-        if code is not None:
-            if code in allowable_errors:
-                return
-        elif errmsg in allowable_errors:
-            return
-
+    if allowable_errors and (
+        code is not None
+        and code in allowable_errors
+        or code is None
+        and errmsg in allowable_errors
+    ):
+        return
     # Server is "not primary" or "recovering"
     if code is not None:
         if code in _NOT_PRIMARY_CODES:

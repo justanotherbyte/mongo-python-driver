@@ -40,10 +40,9 @@ version = "4.1.0.dev0"
 
 f = open("README.rst")
 try:
-    try:
-        readme_content = f.read()
-    except:
-        readme_content = ""
+    readme_content = f.read()
+except:
+    readme_content = ""
 finally:
     f.close()
 
@@ -283,13 +282,11 @@ extras_require = {
     'zstd': ['zstandard'],
     'aws': ['pymongo-auth-aws<2.0.0'],
     'srv': ["dnspython>=1.16.0,<3.0.0"],
+    'gssapi': ["winkerberos>=0.5.0"]
+    if sys.platform == 'win32'
+    else ["pykerberos"],
 }
 
-# GSSAPI extras
-if sys.platform == 'win32':
-    extras_require['gssapi'] = ["winkerberos>=0.5.0"]
-else:
-    extras_require['gssapi'] = ["pykerberos"]
 
 extra_opts = {
     "packages": ["bson", "pymongo", "gridfs"]

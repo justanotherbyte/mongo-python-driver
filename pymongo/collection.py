@@ -157,8 +157,11 @@ class Collection(common.BaseObject):
 
         if not name or ".." in name:
             raise InvalidName("collection names cannot be empty")
-        if "$" in name and not (name.startswith("oplog.$main") or
-                                name.startswith("$cmd")):
+        if (
+            "$" in name
+            and not name.startswith("oplog.$main")
+            and not name.startswith("$cmd")
+        ):
             raise InvalidName("collection names must not "
                               "contain '$': %r" % name)
         if name[0] == "." or name[-1] == ".":

@@ -150,10 +150,10 @@ def create_test(test, test_workdir):
                                      "Expected %s but got %s"
                                      % (auth[elm], options[elm]))
 
-        # Compare URI options.
-        err_msg = "For option %s expected %s but got %s"
         if test['options']:
             opts = options['options']
+            # Compare URI options.
+            err_msg = "For option %s expected %s but got %s"
             for opt in test['options']:
                 lopt = opt.lower()
                 optname = INTERNAL_URI_OPTION_NAME_MAP.get(lopt, lopt)

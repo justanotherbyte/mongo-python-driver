@@ -473,9 +473,7 @@ class TestDatabase(IntegrationTest):
         self.assertEqual(b, db.test.find_one(a_key))
         self.assertEqual(b, db.test.find_one())
 
-        count = 0
-        for _ in db.test.find():
-            count += 1
+        count = sum(1 for _ in db.test.find())
         self.assertEqual(count, 1)
 
     def test_long(self):
@@ -498,15 +496,11 @@ class TestDatabase(IntegrationTest):
         db.test.insert_one({"x": 1})
         db.test.insert_one({"x": 2})
         db.test.insert_one({"x": 3})
-        length = 0
-        for _ in db.test.find():
-            length += 1
+        length = sum(1 for _ in db.test.find())
         self.assertEqual(length, 3)
 
         db.test.delete_one({"x": 1})
-        length = 0
-        for _ in db.test.find():
-            length += 1
+        length = sum(1 for _ in db.test.find())
         self.assertEqual(length, 2)
 
         db.test.delete_one(db.test.find_one())

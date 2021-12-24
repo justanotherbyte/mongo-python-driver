@@ -273,7 +273,7 @@ class TestClientSimple(EncryptionIntegrationTest):
 
         # Collection.distinct auto decrypts.
         decrypted_ssns = encrypted_coll.distinct('ssn')
-        self.assertEqual(set(decrypted_ssns), set(d['ssn'] for d in docs))
+        self.assertEqual(set(decrypted_ssns), {d['ssn'] for d in docs})
 
         # Make sure the field is actually encrypted.
         for encrypted_doc in self.db.test.find():

@@ -202,7 +202,7 @@ class TestURI(unittest.TestCase):
         res.update({'username': 'fred', 'password': 'foobar'})
         self.assertEqual(res, parse_uri("mongodb://fred:foobar@localhost"))
 
-        res.update({'database': 'baz'})
+        res['database'] = 'baz'
         self.assertEqual(res, parse_uri("mongodb://fred:foobar@localhost/baz"))
 
         res = copy.deepcopy(orig)

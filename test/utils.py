@@ -454,14 +454,11 @@ class TestCreator(object):
             # Always run these tests.
             return True
 
-        for req in run_on:
-            if (self.valid_topology(req) and
+        return any((self.valid_topology(req) and
                     self.min_server_version(req) and
                     self.max_server_version(req) and
                     self.valid_auth_enabled(req) and
-                    self.serverless_ok(req)):
-                return True
-        return False
+                    self.serverless_ok(req)) for req in run_on)
 
     def ensure_run_on(self, scenario_def, method):
         """Test modifier that enforces a 'runOn' on a test case."""
@@ -895,7 +892,7 @@ def lazy_client_trial(reset, target, test, get_client):
     collection = client_context.client.pymongo_test.test
 
     with frequent_thread_switches():
-        for i in range(NTRIALS):
+        for _ in range(NTRIALS):
             reset(collection)
             lazy_client = get_client()
             lazy_collection = lazy_client.pymongo_test.test
@@ -1059,11 +1056,8 @@ def prepare_spec_arguments(spec, arguments, opname, entity_map,
         # Named "key" instead not fieldName.
         if arg_name == "fieldName":
             arguments["key"] = arguments.pop(arg_name)
-        # Aggregate uses "batchSize", while find uses batch_size.
-        elif ((arg_name == "batchSize" or arg_name == "allowDiskUse") and
-              opname == "aggregate"):
+        elif arg_name in ["batchSize", "allowDiskUse"] and opname == "aggregate":
             continue
-        # Requires boolean returnDocument.
         elif arg_name == "returnDocument":
             arguments[c2s] = getattr(ReturnDocument, arguments.pop(arg_name).upper())
         elif c2s == "requests":

@@ -116,7 +116,7 @@ class SpecRunner(IntegrationTest):
         client.admin.command(cmd)
 
     def set_fail_point(self, command_args):
-        clients = self.mongos_clients if self.mongos_clients else [self.client]
+        clients = self.mongos_clients or [self.client]
         for client in clients:
             self._set_fail_point(client, command_args)
 
@@ -176,7 +176,7 @@ class SpecRunner(IntegrationTest):
                 msg='error labels should not contain %s' % (label,))
 
     def kill_all_sessions(self):
-        clients = self.mongos_clients if self.mongos_clients else [self.client]
+        clients = self.mongos_clients or [self.client]
         for client in clients:
             try:
                 client.admin.command('killAllSessions', [])
@@ -203,10 +203,7 @@ class SpecRunner(IntegrationTest):
                 # SPEC-869: Only BulkWriteResult has upserted_count.
                 if (prop == "upserted_count"
                         and not isinstance(result, BulkWriteResult)):
-                    if result.upserted_id is not None:
-                        upserted_count = 1
-                    else:
-                        upserted_count = 0
+                    upserted_count = 1 if result.upserted_id is not None else 0
                     self.assertEqual(upserted_count, expected_result[res], prop)
                 elif prop == "inserted_ids":
                     # BulkWriteResult does not have inserted_ids.
@@ -223,9 +220,7 @@ class SpecRunner(IntegrationTest):
                 elif prop == "upserted_ids":
                     # Convert indexes from strings to integers.
                     ids = expected_result[res]
-                    expected_ids = {}
-                    for str_index in ids:
-                        expected_ids[int(str_index)] = ids[str_index]
+                    expected_ids = {int(str_index): ids[str_index] for str_index in ids}
                     self.assertEqual(expected_ids, result.upserted_ids, prop)
                 else:
                     self.assertEqual(
@@ -304,17 +299,20 @@ class SpecRunner(IntegrationTest):
         if name == "watch":
             self.addCleanup(result.close)
 
-        if name == "aggregate":
-            if arguments["pipeline"] and "$out" in arguments["pipeline"][-1]:
-                # Read from the primary to ensure causal consistency.
-                out = collection.database.get_collection(
-                    arguments["pipeline"][-1]["$out"],
-                    read_preference=ReadPreference.PRIMARY)
-                return out.find()
+        if (
+            name == "aggregate"
+            and arguments["pipeline"]
+            and "$out" in arguments["pipeline"][-1]
+        ):
+            # Read from the primary to ensure causal consistency.
+            out = collection.database.get_collection(
+                arguments["pipeline"][-1]["$out"],
+                read_preference=ReadPreference.PRIMARY)
+            return out.find()
         if 'download' in name:
             result = Binary(result.read())
 
-        if isinstance(result, Cursor) or isinstance(result, CommandCursor):
+        if isinstance(result, (Cursor, CommandCursor)):
             return list(result)
 
         return result
@@ -652,8 +650,5 @@ def wrap_types(val):
         typ = val.get('$$type')
         if typ:
             return CompareType(TYPES[typ])
-        d = {}
-        for key in val:
-            d[key] = wrap_types(val[key])
-        return d
+        return {key: wrap_types(val[key]) for key in val}
     return val

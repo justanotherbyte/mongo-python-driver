@@ -215,10 +215,12 @@ def _authenticate_scram(credentials, sock_info, mechanism):
         raise OperationFailure("Server returned an invalid nonce.")
 
     without_proof = b"c=biws,r=" + rnonce
-    if cache.data:
-        client_key, server_key, csalt, citerations = cache.data
-    else:
-        client_key, server_key, csalt, citerations = None, None, None, None
+    client_key, server_key, csalt, citerations = cache.data or (
+        None,
+        None,
+        None,
+        None,
+    )
 
     # Salt and / or iterations could change for a number of different
     # reasons. Either changing invalidates the cache.
@@ -253,8 +255,8 @@ def _authenticate_scram(credentials, sock_info, mechanism):
                    ('conversationId', res['conversationId']),
                    ('payload', Binary(b''))])
         res = sock_info.command(source, cmd)
-        if not res['done']:
-            raise OperationFailure('SASL conversation failed to complete.')
+    if not res['done']:
+        raise OperationFailure('SASL conversation failed to complete.')
 
 
 def _password_digest(username, password):
@@ -317,26 +319,22 @@ def _authenticate_gssapi(credentials, sock_info):
         if props.service_realm is not None:
             service = service + '@' + props.service_realm
 
-        if password is not None:
-            if _USE_PRINCIPAL:
-                # Note that, though we use unquote_plus for unquoting URI
-                # options, we use quote here. Microsoft's UrlUnescape (used
-                # by WinKerberos) doesn't support +.
-                principal = ":".join((quote(username), quote(password)))
-                result, ctx = kerberos.authGSSClientInit(
-                    service, principal, gssflags=kerberos.GSS_C_MUTUAL_FLAG)
-            else:
-                if '@' in username:
-                    user, domain = username.split('@', 1)
-                else:
-                    user, domain = username, None
-                result, ctx = kerberos.authGSSClientInit(
-                    service, gssflags=kerberos.GSS_C_MUTUAL_FLAG,
-                    user=user, domain=domain, password=password)
-        else:
+        if password is None:
             result, ctx = kerberos.authGSSClientInit(
                 service, gssflags=kerberos.GSS_C_MUTUAL_FLAG)
 
+        elif _USE_PRINCIPAL:
+            # Note that, though we use unquote_plus for unquoting URI
+            # options, we use quote here. Microsoft's UrlUnescape (used
+            # by WinKerberos) doesn't support +.
+            principal = ":".join((quote(username), quote(password)))
+            result, ctx = kerberos.authGSSClientInit(
+                service, principal, gssflags=kerberos.GSS_C_MUTUAL_FLAG)
+        else:
+            user, domain = username.split('@', 1) if '@' in username else (username, None)
+            result, ctx = kerberos.authGSSClientInit(
+                service, gssflags=kerberos.GSS_C_MUTUAL_FLAG,
+                user=user, domain=domain, password=password)
         if result != kerberos.AUTH_GSS_COMPLETE:
             raise OperationFailure('Kerberos context failed to initialize.')
 
@@ -453,20 +451,19 @@ def _authenticate_mongo_cr(credentials, sock_info):
 
 
 def _authenticate_default(credentials, sock_info):
-    if sock_info.max_wire_version >= 7:
-        if sock_info.negotiated_mechs:
-            mechs = sock_info.negotiated_mechs
-        else:
-            source = credentials.source
-            cmd = sock_info.hello_cmd()
-            cmd['saslSupportedMechs'] = source + '.' + credentials.username
-            mechs = sock_info.command(
-                source, cmd, publish_events=False).get(
-                'saslSupportedMechs', [])
-        if 'SCRAM-SHA-256' in mechs:
-            return _authenticate_scram(credentials, sock_info, 'SCRAM-SHA-256')
-        else:
-            return _authenticate_scram(credentials, sock_info, 'SCRAM-SHA-1')
+    if sock_info.max_wire_version < 7:
+        return _authenticate_scram(credentials, sock_info, 'SCRAM-SHA-1')
+    if sock_info.negotiated_mechs:
+        mechs = sock_info.negotiated_mechs
+    else:
+        source = credentials.source
+        cmd = sock_info.hello_cmd()
+        cmd['saslSupportedMechs'] = source + '.' + credentials.username
+        mechs = sock_info.command(
+            source, cmd, publish_events=False).get(
+            'saslSupportedMechs', [])
+    if 'SCRAM-SHA-256' in mechs:
+        return _authenticate_scram(credentials, sock_info, 'SCRAM-SHA-256')
     else:
         return _authenticate_scram(credentials, sock_info, 'SCRAM-SHA-1')
 

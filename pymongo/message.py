@@ -269,10 +269,7 @@ class _Query(object):
 
     def use_command(self, sock_info):
         use_find_cmd = False
-        if not self.exhaust:
-            use_find_cmd = True
-        elif sock_info.max_wire_version >= 8:
-            # OP_MSG supports exhaust on MongoDB 4.2+
+        if not self.exhaust or sock_info.max_wire_version >= 8:
             use_find_cmd = True
         elif not self.read_concern.ok_for_legacy:
             raise ConfigurationError(
@@ -316,12 +313,7 @@ class _Query(object):
 
     def get_message(self, read_preference, sock_info, use_cmd=False):
         """Get a query message, possibly setting the secondaryOk bit."""
-        if read_preference.mode:
-            # Set the secondaryOk bit.
-            flags = self.flags | 4
-        else:
-            flags = self.flags
-
+        flags = self.flags | 4 if read_preference.mode else self.flags
         ns = self.namespace()
         spec = self.spec
 
@@ -335,13 +327,9 @@ class _Query(object):
         # OP_QUERY treats ntoreturn of -1 and 1 the same, return
         # one document and close the cursor. We have to use 2 for
         # batch size if 1 is specified.
-        ntoreturn = self.batch_size == 1 and 2 or self.batch_size
+        ntoreturn = 2 if self.batch_size == 1 else self.batch_size
         if self.limit:
-            if ntoreturn:
-                ntoreturn = min(self.limit, ntoreturn)
-            else:
-                ntoreturn = self.limit
-
+            ntoreturn = min(self.limit, ntoreturn) if ntoreturn else self.limit
         if sock_info.is_mongos:
             spec = _maybe_add_read_preference(spec, read_preference)
 
@@ -380,12 +368,8 @@ class _GetMore(object):
 
     def use_command(self, sock_info):
         use_cmd = False
-        if not self.exhaust:
+        if not self.exhaust or sock_info.max_wire_version >= 8:
             use_cmd = True
-        elif sock_info.max_wire_version >= 8:
-            # OP_MSG supports exhaust on MongoDB 4.2+
-            use_cmd = True
-
         sock_info.validate_session(self.client, self.session)
         return use_cmd
 
@@ -418,10 +402,7 @@ class _GetMore(object):
 
         if use_cmd:
             spec = self.as_command(sock_info)[0]
-            if self.sock_mgr:
-                flags = _OpMsg.EXHAUST_ALLOWED
-            else:
-                flags = 0
+            flags = _OpMsg.EXHAUST_ALLOWED if self.sock_mgr else 0
             request_id, msg, size, _ = _op_msg(
                 flags, spec, self.db, None, self.codec_options,
                 ctx=sock_info.compression_context)
@@ -434,24 +415,14 @@ class _RawBatchQuery(_Query):
     def use_command(self, sock_info):
         # Compatibility checks.
         super(_RawBatchQuery, self).use_command(sock_info)
-        if sock_info.max_wire_version >= 8:
-            # MongoDB 4.2+ supports exhaust over OP_MSG
-            return True
-        elif not self.exhaust:
-            return True
-        return False
+        return sock_info.max_wire_version >= 8 or not self.exhaust
 
 
 class _RawBatchGetMore(_GetMore):
     def use_command(self, sock_info):
         # Compatibility checks.
         super(_RawBatchGetMore, self).use_command(sock_info)
-        if sock_info.max_wire_version >= 8:
-            # MongoDB 4.2+ supports exhaust over OP_MSG
-            return True
-        elif not self.exhaust:
-            return True
-        return False
+        return sock_info.max_wire_version >= 8 or not self.exhaust
 
 
 class _CursorAddress(tuple):
@@ -569,10 +540,12 @@ def _op_msg(flags, command, dbname, read_preference, opts, ctx=None):
     """Get a OP_MSG message."""
     command['$db'] = dbname
     # getMore commands do not send $readPreference.
-    if read_preference is not None and "$readPreference" not in command:
-        # Only send $readPreference if it's not primary (the default).
-        if read_preference.mode:
-            command["$readPreference"] = read_preference.document
+    if (
+        read_preference is not None
+        and "$readPreference" not in command
+        and read_preference.mode
+    ):
+        command["$readPreference"] = read_preference.document
     name = next(iter(command))
     try:
         identifier = _FIELD_MAP.get(name)
@@ -596,10 +569,7 @@ def _query_impl(options, collection_name, num_to_skip, num_to_return,
                 query, field_selector, opts):
     """Get an OP_QUERY message."""
     encoded = _dict_to_bson(query, False, opts)
-    if field_selector:
-        efs = _dict_to_bson(field_selector, False, opts)
-    else:
-        efs = b""
+    efs = _dict_to_bson(field_selector, False, opts) if field_selector else b""
     max_bson_size = max(len(encoded), len(efs))
     return b"".join([
         _pack_int(options),
@@ -706,7 +676,7 @@ class _BulkWriteContext(object):
         self.field = _FIELD_MAP[self.name]
         self.start_time = datetime.datetime.now() if self.publish else None
         self.session = session
-        self.compress = True if sock_info.compression_context else False
+        self.compress = bool(sock_info.compression_context)
         self.op_type = op_type
         self.codec = codec
 

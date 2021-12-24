@@ -146,9 +146,6 @@ def create_op_msg_read_mode_test(mode, operation):
         if operation.op_type == 'always-use-secondary':
             expected_server = self.secondary
             expected_pref = ReadPreference.SECONDARY
-        elif operation.op_type == 'must-use-primary':
-            expected_server = self.primary
-            expected_pref = None
         elif operation.op_type == 'may-use-secondary':
             if mode == 'primary':
                 expected_server = self.primary
@@ -159,6 +156,9 @@ def create_op_msg_read_mode_test(mode, operation):
             else:
                 expected_server = self.secondary
                 expected_pref = pref
+        elif operation.op_type == 'must-use-primary':
+            expected_server = self.primary
+            expected_pref = None
         else:
             self.fail('unrecognized op_type %r' % operation.op_type)
         # For single mongod we omit the read preference.

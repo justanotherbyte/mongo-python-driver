@@ -140,10 +140,7 @@ class CustomBSONTypeTests(object):
         self.roundtrip({'average': [{'b': Decimal('56.47')}]})
 
     def test_decode_all(self):
-        documents = []
-        for dec in range(3):
-            documents.append({'average': Decimal('56.4%s' % (dec,))})
-
+        documents = [{'average': Decimal('56.4%s' % (dec,))} for dec in range(3)]
         bsonstream = bytes()
         for doc in documents:
             bsonstream += encode(doc, codec_options=self.codecopts)

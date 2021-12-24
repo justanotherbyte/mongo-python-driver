@@ -117,19 +117,11 @@ class MockClient(MongoClient):
         self.mock_standalones = standalones[:]
         self.mock_members = members[:]
 
-        if self.mock_members:
-            self.mock_primary = self.mock_members[0]
-        else:
-            self.mock_primary = None
-
+        self.mock_primary = self.mock_members[0] if self.mock_members else None
         # Hosts that should be considered an arbiter.
         self.mock_arbiters = arbiters[:] if arbiters else []
 
-        if hello_hosts is not None:
-            self.mock_hello_hosts = hello_hosts
-        else:
-            self.mock_hello_hosts = members[:]
-
+        self.mock_hello_hosts = hello_hosts if hello_hosts is not None else members[:]
         self.mock_mongoses = mongoses[:]
 
         # Hosts that should raise socket errors.

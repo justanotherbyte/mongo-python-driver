@@ -156,8 +156,10 @@ class AutoEncryptionOpts(object):
                                         ['--idleShutdownTimeoutSecs=60'])
         if not isinstance(self._mongocryptd_spawn_args, list):
             raise TypeError('mongocryptd_spawn_args must be a list')
-        if not any('idleShutdownTimeoutSecs' in s
-                   for s in self._mongocryptd_spawn_args):
+        if all(
+            'idleShutdownTimeoutSecs' not in s
+            for s in self._mongocryptd_spawn_args
+        ):
             self._mongocryptd_spawn_args.append('--idleShutdownTimeoutSecs=60')
         # Maps KMS provider name to a SSLContext.
         self._kms_ssl_contexts = _parse_kms_tls_options(kms_tls_options)

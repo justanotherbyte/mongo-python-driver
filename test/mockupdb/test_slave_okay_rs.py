@@ -46,7 +46,7 @@ class TestSlaveOkayRS(unittest.TestCase):
 def create_slave_ok_rs_test(operation):
     def test(self):
         self.setup_server()
-        assert not operation.op_type == 'always-use-secondary'
+        assert operation.op_type != 'always-use-secondary'
 
         client = MongoClient(self.primary.uri, replicaSet='rs')
         self.addCleanup(client.close)

@@ -34,21 +34,20 @@ class Version(tuple):
         mod = 0
         bump_patch_level = False
         if version_string.endswith("+"):
-            version_string = version_string[0:-1]
+            version_string = version_string[:-1]
             mod = 1
         elif version_string.endswith("-pre-"):
-            version_string = version_string[0:-5]
+            version_string = version_string[:-5]
             mod = -1
         elif version_string.endswith("-"):
-            version_string = version_string[0:-1]
+            version_string = version_string[:-1]
             mod = -1
         # Deal with '-rcX' substrings
         if '-rc' in version_string:
-            version_string = version_string[0:version_string.find('-rc')]
+            version_string = version_string[:version_string.find('-rc')]
             mod = -1
-        # Deal with git describe generated substrings
         elif '-' in version_string:
-            version_string = version_string[0:version_string.find('-')]
+            version_string = version_string[:version_string.find('-')]
             mod = -1
             bump_patch_level = True
 
