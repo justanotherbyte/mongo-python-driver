@@ -69,7 +69,7 @@ def is_ip_address(address):
     try:
         ipaddress.ip_address(address)
         return True
-    except (ValueError, UnicodeError):
+    except ValueError:
         return False
 
 try:
@@ -812,11 +812,10 @@ class SocketInfo(object):
 
         Raises error if the client is not the one that created the session.
         """
-        if session:
-            if session._client is not client:
-                raise InvalidOperation(
-                    'Can only use session with the MongoClient that'
-                    ' started it')
+        if session and session._client is not client:
+            raise InvalidOperation(
+                'Can only use session with the MongoClient that'
+                ' started it')
 
     def close_socket(self, reason):
         """Close this connection with a reason."""
@@ -881,10 +880,7 @@ class SocketInfo(object):
         # socket.error, so we catch that, close the socket, and reraise it.
         #
         # The connection closed event will be emitted later in return_socket.
-        if self.ready:
-            reason = None
-        else:
-            reason = ConnectionClosedReason.ERROR
+        reason = None if self.ready else ConnectionClosedReason.ERROR
         self.close_socket(reason)
         # SSLError from PyOpenSSL inherits directly from Exception.
         if isinstance(error, (IOError, OSError, _SSLError)):
@@ -1078,10 +1074,7 @@ class Pool:
           - `options`: a PoolOptions instance
           - `handshake`: whether to call hello for each new SocketInfo
         """
-        if options.pause_enabled:
-            self.state = PoolState.PAUSED
-        else:
-            self.state = PoolState.READY
+        self.state = PoolState.PAUSED if options.pause_enabled else PoolState.READY
         # Check a socket's health with socket_closed() every once in a while.
         # Can override for testing: 0 to always check, None to never check.
         self._check_interval_seconds = 1
@@ -1426,8 +1419,7 @@ class Pool:
                 # to be checked back into the pool.
                 with self._max_connecting_cond:
                     self._raise_if_not_ready(emit_event=False)
-                    while not (self.sockets or
-                               self._pending < self._max_connecting):
+                    while not self.sockets and self._pending >= self._max_connecting:
                         if not _cond_wait(self._max_connecting_cond, deadline):
                             # Timed out, notify the next thread to ensure a
                             # timeout doesn't consume the condition.
@@ -1488,28 +1480,27 @@ class Pool:
             listeners.publish_connection_checked_in(self.address, sock_info.id)
         if self.pid != os.getpid():
             self.reset()
+        elif self.closed:
+            sock_info.close_socket(ConnectionClosedReason.POOL_CLOSED)
+        elif sock_info.closed:
+            # CMAP requires the closed event be emitted after the check in.
+            if self.enabled_for_cmap:
+                listeners.publish_connection_closed(
+                    self.address, sock_info.id,
+                    ConnectionClosedReason.ERROR)
         else:
-            if self.closed:
-                sock_info.close_socket(ConnectionClosedReason.POOL_CLOSED)
-            elif sock_info.closed:
-                # CMAP requires the closed event be emitted after the check in.
-                if self.enabled_for_cmap:
-                    listeners.publish_connection_closed(
-                        self.address, sock_info.id,
-                        ConnectionClosedReason.ERROR)
-            else:
-                with self.lock:
-                    # Hold the lock to ensure this section does not race with
-                    # Pool.reset().
-                    if self.stale_generation(sock_info.generation,
-                                             sock_info.service_id):
-                        sock_info.close_socket(ConnectionClosedReason.STALE)
-                    else:
-                        sock_info.update_last_checkin_time()
-                        sock_info.update_is_writable(self.is_writable)
-                        self.sockets.appendleft(sock_info)
-                        # Notify any threads waiting to create a connection.
-                        self._max_connecting_cond.notify()
+            with self.lock:
+                # Hold the lock to ensure this section does not race with
+                # Pool.reset().
+                if self.stale_generation(sock_info.generation,
+                                         sock_info.service_id):
+                    sock_info.close_socket(ConnectionClosedReason.STALE)
+                else:
+                    sock_info.update_last_checkin_time()
+                    sock_info.update_is_writable(self.is_writable)
+                    self.sockets.appendleft(sock_info)
+                    # Notify any threads waiting to create a connection.
+                    self._max_connecting_cond.notify()
 
         with self.size_cond:
             if txn:
@@ -1542,12 +1533,16 @@ class Pool:
             sock_info.close_socket(ConnectionClosedReason.IDLE)
             return True
 
-        if (self._check_interval_seconds is not None and (
-                0 == self._check_interval_seconds or
-                idle_time_seconds > self._check_interval_seconds)):
-            if sock_info.socket_closed():
-                sock_info.close_socket(ConnectionClosedReason.ERROR)
-                return True
+        if (
+            self._check_interval_seconds is not None
+            and (
+                self._check_interval_seconds == 0
+                or idle_time_seconds > self._check_interval_seconds
+            )
+            and sock_info.socket_closed()
+        ):
+            sock_info.close_socket(ConnectionClosedReason.ERROR)
+            return True
 
         if self.stale_generation(sock_info.generation, sock_info.service_id):
             sock_info.close_socket(ConnectionClosedReason.STALE)

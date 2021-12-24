@@ -97,13 +97,11 @@ class TestHandshake(unittest.TestCase):
 
         for request in primary:
             if request.matches(Command('ismaster')):
-                if request.client_port == heartbeat.client_port:
-                    # This is the monitor again, keep going.
-                    request.ok(primary_response)
-                else:
+                if request.client_port != heartbeat.client_port:
                     # Handshaking a new application socket.
                     _check_handshake_data(request)
-                    request.ok(primary_response)
+                # This is the monitor again, keep going.
+                request.ok(primary_response)
             else:
                 # Command succeeds.
                 request.assert_matches(OpMsg('whatever'))

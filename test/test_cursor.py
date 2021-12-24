@@ -177,9 +177,9 @@ class TestCursor(IntegrationTest):
 
         self.assertTrue(coll.find_one(max_time_ms=1000))
 
-        client = self.client
         if (not client_context.is_mongos
                 and client_context.test_commands_enabled):
+            client = self.client
             # Cursor parses server timeout error in response to initial query.
             client.admin.command("configureFailPoint",
                                  "maxTimeAlwaysTimeOut",
@@ -326,13 +326,12 @@ class TestCursor(IntegrationTest):
                                   "maxTimeAlwaysTimeOut",
                                   mode="alwaysOn")
         try:
-            try:
-                # Iterate up to first getmore.
-                list(cursor)
-            except ExecutionTimeout:
-                pass
-            else:
-                self.fail("ExecutionTimeout not raised")
+            # Iterate up to first getmore.
+            list(cursor)
+        except ExecutionTimeout:
+            pass
+        else:
+            self.fail("ExecutionTimeout not raised")
         finally:
             self.client.admin.command("configureFailPoint",
                                       "maxTimeAlwaysTimeOut",
@@ -412,34 +411,22 @@ class TestCursor(IntegrationTest):
         db.test.drop()
         db.test.insert_many([{"x": i} for i in range(100)])
 
-        count = 0
-        for _ in db.test.find():
-            count += 1
+        count = sum(1 for _ in db.test.find())
         self.assertEqual(count, 100)
 
-        count = 0
-        for _ in db.test.find().limit(20):
-            count += 1
+        count = sum(1 for _ in db.test.find().limit(20))
         self.assertEqual(count, 20)
 
-        count = 0
-        for _ in db.test.find().limit(99):
-            count += 1
+        count = sum(1 for _ in db.test.find().limit(99))
         self.assertEqual(count, 99)
 
-        count = 0
-        for _ in db.test.find().limit(1):
-            count += 1
+        count = sum(1 for _ in db.test.find().limit(1))
         self.assertEqual(count, 1)
 
-        count = 0
-        for _ in db.test.find().limit(0):
-            count += 1
+        count = sum(1 for _ in db.test.find().limit(0))
         self.assertEqual(count, 100)
 
-        count = 0
-        for _ in db.test.find().limit(0).limit(50).limit(10):
-            count += 1
+        count = sum(1 for _ in db.test.find().limit(0).limit(50).limit(10))
         self.assertEqual(count, 10)
 
         a = db.test.find()
@@ -544,9 +531,7 @@ class TestCursor(IntegrationTest):
         self.assertRaises(InvalidOperation, a.batch_size, 5)
 
         def cursor_count(cursor, expected_count):
-            count = 0
-            for _ in cursor:
-                count += 1
+            count = sum(1 for _ in cursor)
             self.assertEqual(expected_count, count)
 
         cursor_count(db.test.find().batch_size(0), 200)
@@ -800,29 +785,21 @@ class TestCursor(IntegrationTest):
 
         cursor = self.db.test.find().limit(2)
 
-        count = 0
-        for _ in cursor:
-            count += 1
+        count = sum(1 for _ in cursor)
         self.assertEqual(2, count)
 
-        count = 0
-        for _ in cursor:
-            count += 1
+        count = sum(1 for _ in cursor)
         self.assertEqual(0, count)
 
         cursor.rewind()
-        count = 0
-        for _ in cursor:
-            count += 1
+        count = sum(1 for _ in cursor)
         self.assertEqual(2, count)
 
         cursor.rewind()
-        count = 0
         for _ in cursor:
             break
         cursor.rewind()
-        for _ in cursor:
-            count += 1
+        count = sum(1 for _ in cursor)
         self.assertEqual(2, count)
 
         self.assertEqual(cursor, cursor.rewind())
@@ -834,33 +811,25 @@ class TestCursor(IntegrationTest):
 
         cursor = self.db.test.find().limit(2)
 
-        count = 0
-        for _ in cursor:
-            count += 1
+        count = sum(1 for _ in cursor)
         self.assertEqual(2, count)
 
-        count = 0
-        for _ in cursor:
-            count += 1
+        count = sum(1 for _ in cursor)
         self.assertEqual(0, count)
 
         cursor = cursor.clone()
         cursor2 = cursor.clone()
-        count = 0
-        for _ in cursor:
-            count += 1
+        count = sum(1 for _ in cursor)
         self.assertEqual(2, count)
         for _ in cursor2:
             count += 1
         self.assertEqual(4, count)
 
         cursor.rewind()
-        count = 0
         for _ in cursor:
             break
         cursor = cursor.clone()
-        for _ in cursor:
-            count += 1
+        count = sum(1 for _ in cursor)
         self.assertEqual(2, count)
 
         self.assertNotEqual(cursor, cursor.clone())
@@ -949,8 +918,8 @@ class TestCursor(IntegrationTest):
         for a, b in zip(count(0), self.db.test.find()):
             self.assertEqual(a, b['i'])
 
-        self.assertEqual(100, len(list(self.db.test.find()[0:])))
-        for a, b in zip(count(0), self.db.test.find()[0:]):
+        self.assertEqual(100, len(list(self.db.test.find()[:])))
+        for a, b in zip(count(0), self.db.test.find()[:]):
             self.assertEqual(a, b['i'])
 
         self.assertEqual(80, len(list(self.db.test.find()[20:])))
@@ -1082,17 +1051,17 @@ class TestCursor(IntegrationTest):
             self.assertEqual(6, cursor[2]["x"])
 
             cursor.rewind()
-            self.assertEqual([4], [doc["x"] for doc in cursor[0:1]])
+            self.assertEqual([4], [doc["x"] for doc in cursor[:1]])
             cursor.rewind()
             self.assertEqual([5], [doc["x"] for doc in cursor[1:2]])
             cursor.rewind()
             self.assertEqual([6], [doc["x"] for doc in cursor[2:3]])
             cursor.rewind()
-            self.assertEqual([4, 5], [doc["x"] for doc in cursor[0:2]])
+            self.assertEqual([4, 5], [doc["x"] for doc in cursor[:2]])
             cursor.rewind()
             self.assertEqual([5, 6], [doc["x"] for doc in cursor[1:3]])
             cursor.rewind()
-            self.assertEqual([4, 5, 6], [doc["x"] for doc in cursor[0:3]])
+            self.assertEqual([4, 5, 6], [doc["x"] for doc in cursor[:3]])
 
     def test_concurrent_close(self):
         """Ensure a tailable can be closed from another thread."""
@@ -1197,7 +1166,7 @@ class TestCursor(IntegrationTest):
         while True:
             cursor.next()
             n += 1
-            if 3 == n:
+            if n == 3:
                 self.assertFalse(cursor.alive)
                 break
 
@@ -1433,8 +1402,10 @@ class TestRawBatchCursor(IntegrationTest):
 
         # The batch is a list of one raw bytes object.
         self.assertEqual(len(csr["firstBatch"]), 1)
-        self.assertEqual(decode_all(csr["firstBatch"][0]),
-                         [{'_id': i} for i in range(0, 4)])
+        self.assertEqual(
+            decode_all(csr["firstBatch"][0]), [{'_id': i} for i in range(4)]
+        )
+
 
         listener.results.clear()
 

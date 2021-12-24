@@ -68,7 +68,7 @@ python %s --help-frameworks.""" % (sys.argv[0], sys.argv[0])
         opts, args = getopt.getopt(
             sys.argv[1:], "h", ["help", "help-frameworks"])
     except getopt.GetoptError as err:
-        print(str(err))
+        print(err)
         print(usage)
         sys.exit(2)
 

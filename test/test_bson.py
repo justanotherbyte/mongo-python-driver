@@ -65,10 +65,7 @@ class NotADict(abc.MutableMapping):
     """Non-dict type that implements the mapping protocol."""
 
     def __init__(self, initial=None):
-        if not initial:
-            self._dict = {}
-        else:
-            self._dict = initial
+        self._dict = {} if not initial else initial
 
     def __iter__(self):
         return iter(self._dict)

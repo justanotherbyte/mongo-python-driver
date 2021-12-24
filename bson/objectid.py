@@ -224,7 +224,7 @@ class ObjectId(object):
         represents the generation time in UTC. It is precise to the
         second.
         """
-        timestamp = struct.unpack(">I", self.__id[0:4])[0]
+        timestamp = struct.unpack(">I", self.__id[:4])[0]
         return datetime.datetime.fromtimestamp(timestamp, utc)
 
     def __getstate__(self):
@@ -238,17 +238,11 @@ class ObjectId(object):
         """
         # Provide backwards compatability with OIDs
         # pickled with pymongo-1.9 or older.
-        if isinstance(value, dict):
-            oid = value["_ObjectId__id"]
-        else:
-            oid = value
+        oid = value["_ObjectId__id"] if isinstance(value, dict) else value
         # ObjectIds pickled in python 2.x used `str` for __id.
         # In python 3.x this has to be converted to `bytes`
         # by encoding latin-1.
-        if isinstance(oid, str):
-            self.__id = oid.encode('latin-1')
-        else:
-            self.__id = oid
+        self.__id = oid.encode('latin-1') if isinstance(oid, str) else oid
 
     def __str__(self):
         return binascii.hexlify(self.__id).decode()

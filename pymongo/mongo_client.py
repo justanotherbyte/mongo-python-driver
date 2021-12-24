@@ -1421,10 +1421,8 @@ class MongoClient(common.BaseObject):
                         sock_mgr=sock_mgr)
             if sock_mgr:
                 sock_mgr.close()
-        else:
-            # The cursor will be closed later in a different session.
-            if cursor_id or sock_mgr:
-                self._close_cursor_soon(cursor_id, address, sock_mgr)
+        elif cursor_id or sock_mgr:
+            self._close_cursor_soon(cursor_id, address, sock_mgr)
         if session and not explicit_session:
             session._end_session(lock=locks_allowed)
 
@@ -1858,8 +1856,7 @@ def _retryable_error_doc(exc):
         # Check the last writeConcernError to determine if this
         # BulkWriteError is retryable.
         wces = exc.details['writeConcernErrors']
-        wce = wces[-1] if wces else None
-        return wce
+        return wces[-1] if wces else None
     if isinstance(exc, (NotPrimaryError, OperationFailure)):
         return exc.details
     return None
@@ -1881,9 +1878,8 @@ def _add_retryable_write_error(exc, max_wire_version):
             # In MongoDB 4.4+, the server reports the error labels.
             for label in doc.get('errorLabels', []):
                 exc._add_error_label(label)
-        else:
-            if code in helpers._RETRYABLE_ERROR_CODES:
-                exc._add_error_label("RetryableWriteError")
+        elif code in helpers._RETRYABLE_ERROR_CODES:
+            exc._add_error_label("RetryableWriteError")
 
     # Connection errors are always retryable except NotPrimaryError which is
     # handled above.
@@ -1929,10 +1925,13 @@ class _MongoClientErrorHandler(object):
                     exc_val._add_error_label("TransientTransactionError")
                 self.session._server_session.mark_dirty()
 
-            if issubclass(exc_type, PyMongoError):
-                if (exc_val.has_error_label("TransientTransactionError") or
-                        exc_val.has_error_label("RetryableWriteError")):
-                    self.session._unpin()
+            if issubclass(exc_type, PyMongoError) and (
+                (
+                    exc_val.has_error_label("TransientTransactionError")
+                    or exc_val.has_error_label("RetryableWriteError")
+                )
+            ):
+                self.session._unpin()
 
         err_ctx = _ErrorContext(
             exc_val, self.max_wire_version, self.sock_generation,

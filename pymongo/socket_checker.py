@@ -35,10 +35,7 @@ def _errno_from_exception(exc):
 class SocketChecker(object):
 
     def __init__(self):
-        if _HAVE_POLL:
-            self._poller = select.poll()
-        else:
-            self._poller = None
+        self._poller = select.poll() if _HAVE_POLL else None
 
     def select(self, sock, read=False, write=False, timeout=0):
         """Select for reads or writes with a timeout in seconds (or None).
@@ -90,12 +87,8 @@ class SocketChecker(object):
             # These errors should not be possible since we protect the
             # poller with a mutex.
             raise
-        except ValueError:
+        except (ValueError, Exception):
             # ValueError is raised by register/unregister/select if the
             # socket file descriptor is negative or outside the range for
             # select (> 1023).
-            return True
-        except Exception:
-            # Any other exceptions should be attributed to a closed
-            # or invalid socket.
             return True

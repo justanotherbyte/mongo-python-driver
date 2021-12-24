@@ -90,7 +90,7 @@ class TestSession(IntegrationTest):
             event_listeners=[self.listener, self.session_checker_listener])
         self.addCleanup(self.client.close)
         self.db = self.client.pymongo_test
-        self.initial_lsids = set(s['id'] for s in session_ids(self.client))
+        self.initial_lsids = {s['id'] for s in session_ids(self.client)}
 
     def tearDown(self):
         """All sessions used in the test must be returned to the pool."""
@@ -100,7 +100,7 @@ class TestSession(IntegrationTest):
             if 'lsid' in event.command:
                 used_lsids.add(event.command['lsid']['id'])
 
-        current_lsids = set(s['id'] for s in session_ids(self.client))
+        current_lsids = {s['id'] for s in session_ids(self.client)}
         self.assertLessEqual(used_lsids, current_lsids)
 
     def _test_ops(self, client, *ops):

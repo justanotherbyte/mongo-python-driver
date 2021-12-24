@@ -487,9 +487,9 @@ class GridOut(io.IOBase):
             _disallow_transactions(self._session)
             self._file = self.__files.find_one({"_id": self.__file_id},
                                                session=self._session)
-            if not self._file:
-                raise NoFile("no file in gridfs collection %r with _id %r" %
-                             (self.__files, self.__file_id))
+        if not self._file:
+            raise NoFile("no file in gridfs collection %r with _id %r" %
+                         (self.__files, self.__file_id))
 
     def __getattr__(self, name):
         self._ensure_file()
@@ -783,13 +783,11 @@ class _GridOutChunkIterator(object):
                 "Missing chunk: expected chunk #%d but found "
                 "chunk with n=%d" % (self._next_chunk, chunk["n"]))
 
-        if chunk["n"] >= self._num_chunks:
-            # According to spec, ignore extra chunks if they are empty.
-            if len(chunk["data"]):
-                self.close()
-                raise CorruptGridFile(
-                    "Extra chunk found: expected %d chunks but found "
-                    "chunk with n=%d" % (self._num_chunks, chunk["n"]))
+        if chunk["n"] >= self._num_chunks and len(chunk["data"]):
+            self.close()
+            raise CorruptGridFile(
+                "Extra chunk found: expected %d chunks but found "
+                "chunk with n=%d" % (self._num_chunks, chunk["n"]))
 
         expected_length = self.expected_chunk_length(chunk["n"])
         if len(chunk["data"]) != expected_length:

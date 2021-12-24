@@ -217,7 +217,7 @@ class ClientUnitTest(unittest.TestCase):
 
     def test_iteration(self):
         def iterate():
-            [a for a in self.client]
+            list(self.client)
 
         self.assertRaises(TypeError, iterate)
 
@@ -1129,15 +1129,10 @@ class TestClient(IntegrationTest):
 
     @client_context.require_ipv6
     def test_ipv6(self):
-        if client_context.tls:
-            if not HAVE_IPADDRESS:
-                raise SkipTest("Need the ipaddress module to test with SSL")
+        if client_context.tls and not HAVE_IPADDRESS:
+            raise SkipTest("Need the ipaddress module to test with SSL")
 
-        if client_context.auth_enabled:
-            auth_str = "%s:%s@" % (db_user, db_pwd)
-        else:
-            auth_str = ""
-
+        auth_str = "%s:%s@" % (db_user, db_pwd) if client_context.auth_enabled else ""
         uri = "mongodb://%s[::1]:%d" % (auth_str, client_context.port)
         if client_context.is_rs:
             uri += '/?replicaSet=' + client_context.replica_set_name

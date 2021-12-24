@@ -162,25 +162,34 @@ class Server(object):
 
         # Decrypt response.
         client = operation.client
-        if client and client._encrypter:
-            if use_cmd:
-                decrypted = client._encrypter.decrypt(
-                    reply.raw_command_response())
-                docs = _decode_all_selective(
-                    decrypted, operation.codec_options, user_fields)
+        if client and client._encrypter and use_cmd:
+            decrypted = client._encrypter.decrypt(
+                reply.raw_command_response())
+            docs = _decode_all_selective(
+                decrypted, operation.codec_options, user_fields)
 
-        if client._should_pin_cursor(operation.session) or operation.exhaust:
-            sock_info.pin_cursor()
-            if isinstance(reply, _OpMsg):
-                # In OP_MSG, the server keeps sending only if the
-                # more_to_come flag is set.
-                more_to_come = reply.more_to_come
-            else:
-                # In OP_REPLY, the server keeps sending until cursor_id is 0.
-                more_to_come = bool(operation.exhaust and reply.cursor_id)
-            if operation.sock_mgr:
-                operation.sock_mgr.update_exhaust(more_to_come)
-            response = PinnedResponse(
+        if not client._should_pin_cursor(operation.session) and (
+            client._should_pin_cursor(operation.session) or not operation.exhaust
+        ):
+            return Response(
+                data=reply,
+                address=self._description.address,
+                duration=duration,
+                request_id=request_id,
+                from_command=use_cmd,
+                docs=docs)
+
+        sock_info.pin_cursor()
+        if isinstance(reply, _OpMsg):
+            # In OP_MSG, the server keeps sending only if the
+            # more_to_come flag is set.
+            more_to_come = reply.more_to_come
+        else:
+            # In OP_REPLY, the server keeps sending until cursor_id is 0.
+            more_to_come = bool(operation.exhaust and reply.cursor_id)
+        if operation.sock_mgr:
+            operation.sock_mgr.update_exhaust(more_to_come)
+        return PinnedResponse(
                 data=reply,
                 address=self._description.address,
                 socket_info=sock_info,
@@ -189,16 +198,6 @@ class Server(object):
                 from_command=use_cmd,
                 docs=docs,
                 more_to_come=more_to_come)
-        else:
-            response = Response(
-                data=reply,
-                address=self._description.address,
-                duration=duration,
-                request_id=request_id,
-                from_command=use_cmd,
-                docs=docs)
-
-        return response
 
     def get_socket(self, handler=None):
         return self.pool.get_socket(handler)
@@ -224,10 +223,9 @@ class Server(object):
         """
         if len(message) == 3:
             return message
-        else:
-            # get_more and kill_cursors messages don't include BSON documents.
-            request_id, data = message
-            return request_id, data, 0
+        # get_more and kill_cursors messages don't include BSON documents.
+        request_id, data = message
+        return request_id, data, 0
 
     def __repr__(self):
         return '<%s %r>' % (self.__class__.__name__, self._description)

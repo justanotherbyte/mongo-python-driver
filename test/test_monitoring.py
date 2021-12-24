@@ -823,7 +823,7 @@ class TestCommandMonitoring(IntegrationTest):
         coll.drop()
         self.listener.results.clear()
 
-        big = 'x' * (1024 * 1024 * 4)
+        big = 'x' * (1024**2 * 4)
         docs = [{'_id': i, 'big': big} for i in range(6)]
         coll.insert_many(docs)
         results = self.listener.results
@@ -866,7 +866,7 @@ class TestCommandMonitoring(IntegrationTest):
         self.listener.results.clear()
 
         # Force two batches on legacy servers.
-        big = 'x' * (1024 * 1024 * 12)
+        big = 'x' * (1024**2 * 12)
         docs = [{'_id': i, 'big': big} for i in range(6)]
         unack_coll.insert_many(docs)
         results = self.listener.results

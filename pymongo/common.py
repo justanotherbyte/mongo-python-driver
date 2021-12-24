@@ -303,7 +303,7 @@ def validate_positive_float_or_zero(option, value):
     """Validates that 'value' is 0 or a positive float, or can be converted to
     0 or a positive float.
     """
-    if value == 0 or value == "0":
+    if value in [0, "0"]:
         return 0
     return validate_positive_float(option, value)
 
@@ -325,7 +325,7 @@ def validate_timeout_or_zero(option, value):
     """
     if value is None:
         raise ConfigurationError("%s cannot be None" % (option, ))
-    if value == 0 or value == "0":
+    if value in [0, "0"]:
         return 0
     return validate_positive_float(option, value) / 1000.0
 
@@ -342,7 +342,7 @@ def validate_timeout_or_none_or_zero(option, value):
 
 def validate_max_staleness(option, value):
     """Validates maxStalenessSeconds according to the Max Staleness Spec."""
-    if value == -1 or value == "-1":
+    if value in [-1, "-1"]:
         # Default: No maximum staleness.
         return -1
     return validate_positive_integer(option, value)
@@ -883,7 +883,7 @@ class _CaseInsensitiveDictionary(abc.MutableMapping):
         return len(self.__data)
 
     def __iter__(self):
-        return (key for key in self.__casedkeys)
+        return iter(self.__casedkeys)
 
     def __repr__(self):
         return str({self.__casedkeys[k]: self.__data[k] for k in self})
@@ -906,11 +906,7 @@ class _CaseInsensitiveDictionary(abc.MutableMapping):
             return NotImplemented
         if len(self) != len(other):
             return False
-        for key in other:
-            if self[key] != other[key]:
-                return False
-
-        return True
+        return all(self[key] == other[key] for key in other)
 
     def get(self, key, default=None):
         return self.__data.get(key.lower(), default)
@@ -933,17 +929,15 @@ class _CaseInsensitiveDictionary(abc.MutableMapping):
         lc_key = key.lower()
         if key in self:
             return self.__data[lc_key]
-        else:
-            self.__casedkeys[lc_key] = key
-            self.__data[lc_key] = default
-            return default
+        self.__casedkeys[lc_key] = key
+        self.__data[lc_key] = default
+        return default
 
     def update(self, other):
-        if isinstance(other, _CaseInsensitiveDictionary):
-            for key in other:
+        for key in other:
+            if isinstance(other, _CaseInsensitiveDictionary):
                 self[other.cased_key(key)] = other[key]
-        else:
-            for key in other:
+            else:
                 self[key] = other[key]
 
     def cased_key(self, key):

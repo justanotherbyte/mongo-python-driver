@@ -126,22 +126,22 @@ def is_run_on_requirement_satisfied(requirement):
             req_max_server_version) >= server_version
 
     serverless = requirement.get('serverless')
-    if serverless == "require":
-        serverless_satisfied = client_context.serverless
-    elif serverless == "forbid":
+    if serverless == "forbid":
         serverless_satisfied = not client_context.serverless
-    else:   # unset or "allow"
+    elif serverless == "require":
+        serverless_satisfied = client_context.serverless
+    else:
         serverless_satisfied = True
 
     params_satisfied = True
     params = requirement.get('serverParameters')
     if params:
         for param, val in params.items():
-            if param not in client_context.server_parameters:
+            if (
+                param not in client_context.server_parameters
+                or client_context.server_parameters[param] != val
+            ):
                 params_satisfied = False
-            elif client_context.server_parameters[param] != val:
-                params_satisfied = False
-
     auth_satisfied = True
     req_auth = requirement.get('auth')
     if req_auth is not None:
@@ -197,7 +197,7 @@ class NonLazyCursor(object):
 class EventListenerUtil(CMAPListener, CommandListener):
     def __init__(self, observe_events, ignore_commands,
                  observe_sensitive_commands, store_events, entity_map):
-        self._event_types = set(name.lower() for name in observe_events)
+        self._event_types = {name.lower() for name in observe_events}
         if observe_sensitive_commands:
             self._observe_sensitive_commands = True
             self._ignore_commands = set(ignore_commands)
@@ -237,19 +237,19 @@ class EventListenerUtil(CMAPListener, CommandListener):
             self.add_event(event)
 
     def started(self, event):
-        if event.command == {}:
-            # Command is redacted. Observe only if flag is set.
-            if self._observe_sensitive_commands:
-                self._command_event(event)
-        else:
+        if (
+            event.command == {}
+            and self._observe_sensitive_commands
+            or event.command != {}
+        ):
             self._command_event(event)
 
     def succeeded(self, event):
-        if event.reply == {}:
-            # Command is redacted. Observe only if flag is set.
-            if self._observe_sensitive_commands:
-                self._command_event(event)
-        else:
+        if (
+            event.reply == {}
+            and self._observe_sensitive_commands
+            or event.reply != {}
+        ):
             self._command_event(event)
 
     def failed(self, event):
@@ -458,8 +458,10 @@ class MatchEvaluatorUtil(object):
 
     def _operation_type(self, spec, actual, key_to_compare):
         if isinstance(spec, abc.MutableSequence):
-            permissible_types = tuple([
-                t for alias in spec for t in self.__type_alias_to_type(alias)])
+            permissible_types = tuple(
+                t for alias in spec for t in self.__type_alias_to_type(alias)
+            )
+
         else:
             permissible_types = self.__type_alias_to_type(spec)
         value = actual[key_to_compare] if key_to_compare else actual
@@ -577,12 +579,9 @@ class MatchEvaluatorUtil(object):
                 return
 
         # account for flexible numerics in element-wise comparison
-        if (isinstance(expectation, int) or
-                isinstance(expectation, float)):
-            self.test.assertEqual(expectation, actual)
-        else:
+        if not isinstance(expectation, int) and not isinstance(expectation, float):
             self.test.assertIsInstance(actual, type(expectation))
-            self.test.assertEqual(expectation, actual)
+        self.test.assertEqual(expectation, actual)
 
     def assertHasServiceId(self, spec, actual):
         if 'hasServiceId' in spec:
@@ -667,7 +666,7 @@ def coerce_result(opname, result):
     if opname == 'insertOne':
         return {'insertedId': result.inserted_id}
     if opname == 'insertMany':
-        return {idx: _id for idx, _id in enumerate(result.inserted_ids)}
+        return dict(enumerate(result.inserted_ids))
     if opname in ('deleteOne', 'deleteMany'):
         return {'deletedCount': result.deleted_count}
     if opname in ('updateOne', 'updateMany', 'replaceOne'):
@@ -698,10 +697,7 @@ class UnifiedSpecTestMixinV1(IntegrationTest):
             # Always run these tests.
             return True
 
-        for req in run_on_spec:
-            if is_run_on_requirement_satisfied(req):
-                return True
-        return False
+        return any(is_run_on_requirement_satisfied(req) for req in run_on_spec)
 
     def insert_initial_data(self, initial_data):
         for collection_data in initial_data:
@@ -731,10 +727,12 @@ class UnifiedSpecTestMixinV1(IntegrationTest):
                 '%s runOnRequirements not satisfied' % (cls.__name__,))
 
         # add any special-casing for skipping tests here
-        if client_context.storage_engine == 'mmapv1':
-            if 'retryable-writes' in cls.TEST_SPEC['description']:
-                raise unittest.SkipTest(
-                    "MMAPv1 does not support retryWrites=True")
+        if (
+            client_context.storage_engine == 'mmapv1'
+            and 'retryable-writes' in cls.TEST_SPEC['description']
+        ):
+            raise unittest.SkipTest(
+                "MMAPv1 does not support retryWrites=True")
 
     def setUp(self):
         super(UnifiedSpecTestMixinV1, self).setUp()
@@ -769,17 +767,11 @@ class UnifiedSpecTestMixinV1(IntegrationTest):
         error_labels_omit = spec.get('errorLabelsOmit')
         expect_result = spec.get('expectResult')
 
-        if is_error:
-            # already satisfied because exception was raised
-            pass
-
         if is_client_error:
             # Connection errors are considered client errors.
             if isinstance(exception, ConnectionFailure):
                 self.assertNotIsInstance(exception, NotPrimaryError)
-            elif isinstance(exception, (InvalidOperation, ConfigurationError)):
-                pass
-            else:
+            elif not isinstance(exception, (InvalidOperation, ConfigurationError)):
                 self.assertNotIsInstance(exception, PyMongoError)
 
         if error_contains:
@@ -1024,10 +1016,12 @@ class UnifiedSpecTestMixinV1(IntegrationTest):
         self.assertIsNone(session._transaction.pinned_address)
 
     def __get_last_two_command_lsids(self, listener):
-        cmd_started_events = []
-        for event in reversed(listener.events):
-            if isinstance(event, CommandStartedEvent):
-                cmd_started_events.append(event)
+        cmd_started_events = [
+            event
+            for event in reversed(listener.events)
+            if isinstance(event, CommandStartedEvent)
+        ]
+
         if len(cmd_started_events) < 2:
             self.fail('Needed 2 CommandStartedEvents to compare lsids, '
                       'got %s' % (len(cmd_started_events)))

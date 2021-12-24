@@ -48,9 +48,7 @@ class SON(dict):
         return instance
 
     def __repr__(self):
-        result = []
-        for key in self.__keys:
-            result.append("(%r, %r)" % (key, self[key]))
+        result = ["(%r, %r)" % (key, self[key]) for key in self.__keys]
         return "SON([%s])" % ", ".join(result)
 
     def __setitem__(self, key, value):
@@ -71,8 +69,7 @@ class SON(dict):
     # efficient.
     # second level definitions support higher levels
     def __iter__(self):
-        for k in self.__keys:
-            yield k
+        yield from self.__keys
 
     def has_key(self, key):
         return key in self.__keys

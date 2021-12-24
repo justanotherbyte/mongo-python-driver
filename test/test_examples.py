@@ -826,7 +826,7 @@ class TestSampleShellCommands(IntegrationTest):
             collection.insert_one({'_id': 1}, session=session)
             collection.update_one(
                 {'_id': 1}, {"$set": {"a": 1}}, session=session)
-            for doc in collection.find({}, session=session):
+            for _ in collection.find({}, session=session):
                 pass
 
         # 3. Exploiting the power of arrays
@@ -903,13 +903,11 @@ class TestTransactionExamples(IntegrationTest):
                     print("Transaction aborted. Caught exception during "
                           "transaction.")
 
-                    # If transient error, retry the whole transaction
-                    if exc.has_error_label("TransientTransactionError"):
-                        print("TransientTransactionError, retrying"
-                              "transaction ...")
-                        continue
-                    else:
+                    if not exc.has_error_label("TransientTransactionError"):
                         raise
+                    print("TransientTransactionError, retrying"
+                          "transaction ...")
+                    continue
         # End Transactions Retry Example 1
 
         with client.start_session() as session:
@@ -965,13 +963,11 @@ class TestTransactionExamples(IntegrationTest):
                     txn_func(session)  # performs transaction
                     break
                 except (ConnectionFailure, OperationFailure) as exc:
-                    # If transient error, retry the whole transaction
-                    if exc.has_error_label("TransientTransactionError"):
-                        print("TransientTransactionError, retrying "
-                              "transaction ...")
-                        continue
-                    else:
+                    if not exc.has_error_label("TransientTransactionError"):
                         raise
+                    print("TransientTransactionError, retrying "
+                          "transaction ...")
+                    continue
 
         def commit_with_retry(session):
             while True:

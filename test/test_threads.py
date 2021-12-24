@@ -54,10 +54,7 @@ class SaveAndFind(threading.Thread):
         self.passed = False
 
     def run(self):
-        sum = 0
-        for document in self.collection.find():
-            sum += document["x"]
-
+        sum = sum(document["x"] for document in self.collection.find())
         assert sum == 499500, "sum was %d not 499500" % sum
         self.passed = True
 
@@ -120,7 +117,7 @@ class TestThreads(IntegrationTest):
         self.db.test.insert_many([{"x": i} for i in range(1000)])
 
         threads = []
-        for i in range(10):
+        for _ in range(10):
             t = SaveAndFind(self.db.test)
             t.start()
             threads.append(t)

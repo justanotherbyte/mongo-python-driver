@@ -261,7 +261,7 @@ class Binary(bytes):
             payload = uuid.bytes
         elif uuid_representation == UuidRepresentation.JAVA_LEGACY:
             from_uuid = uuid.bytes
-            payload = from_uuid[0:8][::-1] + from_uuid[8:16][::-1]
+            payload = from_uuid[:8][::-1] + from_uuid[8:16][::-1]
         elif uuid_representation == UuidRepresentation.CSHARP_LEGACY:
             payload = uuid.bytes_le
         else:
@@ -303,14 +303,12 @@ class Binary(bytes):
                 return UUID(bytes=self)
         elif uuid_representation == UuidRepresentation.JAVA_LEGACY:
             if self.subtype == OLD_UUID_SUBTYPE:
-                return UUID(bytes=self[0:8][::-1] + self[8:16][::-1])
+                return UUID(bytes=self[:8][::-1] + self[8:16][::-1])
         elif uuid_representation == UuidRepresentation.CSHARP_LEGACY:
             if self.subtype == OLD_UUID_SUBTYPE:
                 return UUID(bytes_le=self)
-        else:
-            # uuid_representation == UuidRepresentation.STANDARD
-            if self.subtype == UUID_SUBTYPE:
-                return UUID(bytes=self)
+        elif self.subtype == UUID_SUBTYPE:
+            return UUID(bytes=self)
 
         raise ValueError("cannot decode subtype %s to %s" % (
                 self.subtype, UUID_REPRESENTATION_NAMES[uuid_representation]))

@@ -58,8 +58,8 @@ def do_simple_op(client, nthreads):
 
 
 def writable_addresses(topology):
-    return set(server.description.address for server in
-               topology.select_servers(writable_server_selector))
+    return {server.description.address for server in
+                   topology.select_servers(writable_server_selector)}
 
 
 class TestMongosLoadBalancing(MockClientTest):

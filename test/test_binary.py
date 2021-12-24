@@ -469,10 +469,9 @@ class TestUuidSpecImplicitCoding(IntegrationTest):
     def _get_coll_w_uuid_rep(self, uuid_rep):
         codec_options = self.client.codec_options.with_options(
             uuid_representation=validate_uuid_representation(None, uuid_rep))
-        coll = self.db.get_collection(
+        return self.db.get_collection(
             'pymongo_test', codec_options=codec_options,
             write_concern=WriteConcern("majority"))
-        return coll
 
     def _test_encoding(self, uuid_rep, expected_hexstring, expected_subtype):
         coll = self._get_coll_w_uuid_rep(uuid_rep)

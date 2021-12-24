@@ -319,8 +319,8 @@ class Cursor(object):
                            "query_flags", "collation", "empty",
                            "show_record_id", "return_key", "allow_disk_use",
                            "snapshot", "exhaust")
-        data = dict((k, v) for k, v in self.__dict__.items()
-                    if k.startswith('_Cursor__') and k[9:] in values_to_clone)
+        data = {k: v for k, v in self.__dict__.items()
+                        if k.startswith('_Cursor__') and k[9:] in values_to_clone}
         if deepcopy:
             data = self._deepcopy(data)
         base.__dict__.update(data)
@@ -997,10 +997,9 @@ class Cursor(object):
             raise
 
         self.__address = response.address
-        if isinstance(response, PinnedResponse):
-            if not self.__sock_mgr:
-                self.__sock_mgr = _SocketManager(response.socket_info,
-                                                 response.more_to_come)
+        if isinstance(response, PinnedResponse) and not self.__sock_mgr:
+            self.__sock_mgr = _SocketManager(response.socket_info,
+                                             response.more_to_come)
 
         cmd_name = operation.name
         docs = response.docs

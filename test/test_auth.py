@@ -214,9 +214,7 @@ class TestGSSAPI(unittest.TestCase):
             except OperationFailure:
                 raise SkipTest("User must be able to write.")
 
-        threads = []
-        for _ in range(4):
-            threads.append(AutoAuthenticateThread(collection))
+        threads = [AutoAuthenticateThread(collection) for _ in range(4)]
         for thread in threads:
             thread.start()
         for thread in threads:
@@ -292,11 +290,10 @@ class TestSASLPlain(unittest.TestCase):
 
     def test_sasl_plain_bad_credentials(self):
         def auth_string(user, password):
-            uri = ('mongodb://%s:%s@%s:%d/?authMechanism=PLAIN;'
+            return ('mongodb://%s:%s@%s:%d/?authMechanism=PLAIN;'
                    'authSource=%s' % (quote_plus(user),
                                       quote_plus(password),
                                       SASL_HOST, SASL_PORT, SASL_DB))
-            return uri
 
         bad_user = MongoClient(auth_string('not-user', SASL_PASS))
         bad_pwd = MongoClient(auth_string(SASL_USER, 'not-pwd'))
@@ -547,9 +544,7 @@ class TestSCRAM(IntegrationTest):
 
         # The first thread to call find() will authenticate
         coll = rs_or_single_client().db.test
-        threads = []
-        for _ in range(4):
-            threads.append(AutoAuthenticateThread(coll))
+        threads = [AutoAuthenticateThread(coll) for _ in range(4)]
         for thread in threads:
             thread.start()
         for thread in threads:

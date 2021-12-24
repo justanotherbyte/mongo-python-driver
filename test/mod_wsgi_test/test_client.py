@@ -92,7 +92,7 @@ class URLGetterThread(threading.Thread):
         self.errors = 0
 
     def run(self):
-        for i in range(self.nrequests_per_thread):
+        for _ in range(self.nrequests_per_thread):
             try:
                 get(url)
             except Exception as e:
@@ -137,7 +137,7 @@ def main(options, mode, url):
         for t in threads:
             t.join()
 
-        errors = sum([t.errors for t in threads])
+        errors = sum(t.errors for t in threads)
         nthreads_with_errors = len([t for t in threads if t.errors])
         if nthreads_with_errors:
             print('%d threads had errors! %d errors in total' % (

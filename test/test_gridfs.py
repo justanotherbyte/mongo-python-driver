@@ -401,8 +401,6 @@ class TestGridfs(IntegrationTest):
         f = self.fs.get_last_version(filename="empty")
 
         def iterate_file(grid_file):
-            for chunk in grid_file:
-                pass
             return True
 
         self.assertTrue(iterate_file(f))

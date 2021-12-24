@@ -41,8 +41,8 @@ class TestAllScenarios(unittest.TestCase):
             server.pool.operation_count = mock['operation_count']
 
         pref = ReadPreference.NEAREST
-        counts = dict((address, 0) for address in
-                      topology._description.server_descriptions())
+        counts = {address: 0 for address in
+                          topology._description.server_descriptions()}
 
         # Number of times to repeat server selection
         iterations = scenario_def['iterations']

@@ -71,13 +71,11 @@ def _load_trusted_ca_certs(cafile):
     with open(cafile, 'rb') as f:
         data = f.read()
 
-    # Load all the certs in the file.
-    trusted_ca_certs = []
     backend = _default_backend()
-    for cert_data in _re.findall(_CERT_REGEX, data):
-        trusted_ca_certs.append(
-            _load_pem_x509_certificate(cert_data, backend))
-    return trusted_ca_certs
+    return [
+        _load_pem_x509_certificate(cert_data, backend)
+        for cert_data in _re.findall(_CERT_REGEX, data)
+    ]
 
 
 def _get_issuer_cert(cert, chain, trusted_ca_certs):

@@ -105,7 +105,7 @@ def _decimal_to_128(value):
     biased_exponent = exponent + _EXPONENT_BIAS
 
     if high >> 49 == 1:
-        high = high & 0x7fffffffffff
+        high &= 0x7fffffffffff
         high |= _EXPONENT_MASK
         high |= (biased_exponent & 0x3fff) << 47
     else:
@@ -252,12 +252,12 @@ class Decimal128(object):
         mask = 0x00000000000000ff
         for i in range(14, 6, -1):
             arr[i] = (low & mask) >> ((14 - i) << 3)
-            mask = mask << 8
+            mask <<= 8
 
         mask = 0x00000000000000ff
         for i in range(6, 0, -1):
             arr[i] = (high & mask) >> ((6 - i) << 3)
-            mask = mask << 8
+            mask <<= 8
 
         mask = 0x0001000000000000
         arr[0] = (high & mask) >> 48

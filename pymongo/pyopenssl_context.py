@@ -16,6 +16,7 @@
 context.
 """
 
+
 import socket as _socket
 import ssl as _stdlibssl
 import sys as _sys
@@ -73,14 +74,13 @@ _VERIFY_MAP = {
     _stdlibssl.CERT_REQUIRED: _SSL.VERIFY_PEER | _SSL.VERIFY_FAIL_IF_NO_PEER_CERT
 }
 
-_REVERSE_VERIFY_MAP = dict(
-    (value, key) for key, value in _VERIFY_MAP.items())
+_REVERSE_VERIFY_MAP = {value: key for key, value in _VERIFY_MAP.items()}
 
 def _is_ip_address(address):
     try:
         _ip_address(address)
         return True
-    except (ValueError, UnicodeError):
+    except ValueError:
         return False
 
 # According to the docs for Connection.send it can raise
@@ -297,11 +297,10 @@ class SSLContext(object):
         cert_store = self._ctx.get_cert_store()
         oid = _stdlibssl.Purpose.SERVER_AUTH.oid
         for cert, encoding, trust in _stdlibssl.enum_certificates(store):
-            if encoding == "x509_asn":
-                if trust is True or oid in trust:
-                    cert_store.add_cert(
-                        _crypto.X509.from_cryptography(
-                            _load_der_x509_certificate(cert)))
+            if encoding == "x509_asn" and (trust is True or oid in trust):
+                cert_store.add_cert(
+                    _crypto.X509.from_cryptography(
+                        _load_der_x509_certificate(cert)))
 
     def load_default_certs(self):
         """A PyOpenSSL version of load_default_certs from CPython."""

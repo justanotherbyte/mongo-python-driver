@@ -117,11 +117,10 @@ def apply_single_tag_set(tag_set, selection):
     The empty tag set {} matches any server.
     """
     def tags_match(server_tags):
-        for key, value in tag_set.items():
-            if key not in server_tags or server_tags[key] != value:
-                return False
-
-        return True
+        return not any(
+            key not in server_tags or server_tags[key] != value
+            for key, value in tag_set.items()
+        )
 
     return selection.with_server_descriptions(
         [s for s in selection.server_descriptions if tags_match(s.tags)])

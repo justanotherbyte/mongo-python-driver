@@ -71,9 +71,8 @@ class ServerDescription(object):
         self._last_update_time = time.monotonic()
         self._error = error
         self._topology_version = hello.topology_version
-        if error:
-            if hasattr(error, 'details') and isinstance(error.details, dict):
-                self._topology_version = error.details.get('topologyVersion')
+        if error and hasattr(error, 'details') and isinstance(error.details, dict):
+            self._topology_version = error.details.get('topologyVersion')
 
         if hello.last_write_date:
             # Convert from datetime to seconds.
@@ -246,9 +245,7 @@ class ServerDescription(object):
         return not self == other
 
     def __repr__(self):
-        errmsg = ''
-        if self.error:
-            errmsg = ', error=%r' % (self.error,)
+        errmsg = ', error=%r' % (self.error,) if self.error else ''
         return "<%s %s server_type: %s, rtt: %s%s>" % (
             self.__class__.__name__, self.address, self.server_type_name,
             self.round_trip_time, errmsg)

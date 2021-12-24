@@ -1593,9 +1593,6 @@ class TestCollection(IntegrationTest):
         next(cursor)
         # batchSize - 1
         self.assertEqual(4, len(cursor._CommandCursor__data))
-        # Exhaust the cursor. There shouldn't be any errors.
-        for doc in cursor:
-            pass
 
     def test_aggregation_cursor_alive(self):
         self.db.test.delete_many({})
@@ -1606,7 +1603,7 @@ class TestCollection(IntegrationTest):
         while True:
             cursor.next()
             n += 1
-            if 3 == n:
+            if n == 3:
                 self.assertFalse(cursor.alive)
                 break
 
@@ -1637,10 +1634,7 @@ class TestCollection(IntegrationTest):
 
         self.assertEqual(10, db.test.count_documents({}))
 
-        total = 0
-        for x in db.test.find({}, skip=4, limit=2):
-            total += x["x"]
-
+        total = sum(x["x"] for x in db.test.find({}, skip=4, limit=2))
         self.assertEqual(9, total)
 
     def test_rename(self):
@@ -1667,11 +1661,8 @@ class TestCollection(IntegrationTest):
         self.assertEqual(0, db.test.count_documents({}))
         self.assertEqual(10, db.foo.count_documents({}))
 
-        x = 0
-        for doc in db.foo.find():
+        for x, doc in enumerate(db.foo.find()):
             self.assertEqual(x, doc["x"])
-            x += 1
-
         db.test.insert_one({})
         self.assertRaises(OperationFailure, db.foo.rename, "test")
         db.foo.rename("test", dropTarget=True)
@@ -1788,8 +1779,6 @@ class TestCollection(IntegrationTest):
         cur = client[self.db.name].test.find(cursor_type=CursorType.EXHAUST)
         next(cur)
         self.assertEqual(0, len(pool.sockets))
-        for _ in cur:
-            pass
         self.assertEqual(1, len(pool.sockets))
 
         # Same as previous but don't call next()
